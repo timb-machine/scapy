@@ -39,13 +39,13 @@ class EoMCW(Packet):
 class MPLS(Packet):
     name = "MPLS"
     fields_desc = [BitField("label", 3, 20),
-                   BitField("cos", 0, 3),
-                   BitField("s", 1, 1),
-                   ByteField("ttl", 0)]
+                   BitField("experimental_bits", 0, 3), # This is experimental
+                   BitField("bottom_of_the_stack", 1, 1), # Now we're at the bottom
+                   ByteField("ttl", 255)]
 
     def guess_payload_class(self, payload):
         if len(payload) >= 1:
-            if not self.s:
+            if not self.bottom_of_the_stack:
                 return MPLS
             ip_version = (orb(payload[0]) >> 4) & 0xF
             if ip_version == 4:
@@ -67,7 +67,7 @@ bind_layers(IP, MPLS, proto=137)
 bind_layers(IPv6, MPLS, nh=137)
 bind_layers(UDP, MPLS, dport=6635)
 bind_layers(GRE, MPLS, proto=0x8847)
-bind_layers(MPLS, MPLS, s=0)
+bind_layers(MPLS, MPLS, bottom_of_the_stack=0) # We're not at the bottom yet
 bind_layers(MPLS, IP, label=0)  # IPv4 Explicit NULL
 bind_layers(MPLS, IPv6, label=2)  # IPv6 Explicit NULL
 bind_layers(MPLS, EoMCW)
